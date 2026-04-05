@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DCC PAY</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--c:#00eeff;--p:#9b00ff;--pk:#ff0055;--g:#00ff88;--bg:#02040e;--card1:#040c24;--card2:#0a0020}
+html,body{background:var(--bg);color:#ddf0ff;font-family:'Rajdhani',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* MINIMAL BG - no animation for performance */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 60% 50% at 10% 15%,rgba(0,238,255,0.07) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 80%,rgba(155,0,255,0.09) 0%,transparent 60%);
+}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(0,238,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,238,255,0.03) 1px,transparent 1px);
+  background-size:52px 52px;
+}
+#cc{position:fixed;inset:0;pointer-events:none;z-index:9999}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;background:rgba(2,4,14,0.95);backdrop-filter:blur(16px);border-bottom:1px solid rgba(0,238,255,0.1)}
+.logo{font-family:'Orbitron',monospace;font-weight:900;font-size:1.35rem;letter-spacing:5px;background:linear-gradient(90deg,#fff,var(--c) 50%,var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo em{font-style:normal;font-size:.45rem;letter-spacing:5px;-webkit-text-fill-color:rgba(0,238,255,0.35);vertical-align:super}
+.navr{display:flex;gap:1rem;align-items:center}
+.nl{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.75rem;letter-spacing:2px;text-transform:uppercase;color:rgba(221,240,255,.4);text-decoration:none;background:none;border:none;cursor:pointer;transition:color .2s;padding:4px 8px}
+.nl:hover{color:var(--c)}
+.nb{font-family:'Orbitron',monospace;font-size:.6rem;font-weight:700;letter-spacing:2px;padding:8px 18px;border-radius:3px;background:transparent;border:1px solid var(--c);color:var(--c);cursor:pointer;box-shadow:0 0 12px rgba(0,238,255,.2);transition:all .2s}
+.nb:hover{background:rgba(0,238,255,.08);box-shadow:0 0 24px rgba(0,238,255,.4)}
+
+/* HERO */
+.hero{position:relative;z-index:1;text-align:center;padding:4rem 2rem 2rem}
+.tag{display:inline-flex;align-items:center;gap:8px;font-family:'Share Tech Mono',monospace;font-size:.65rem;letter-spacing:4px;color:var(--g);border:1px solid rgba(0,255,136,.2);padding:5px 16px;border-radius:2px;margin-bottom:1.8rem}
+.blink{width:6px;height:6px;border-radius:50%;background:var(--g);animation:bl 1.4s ease-in-out infinite}
+@keyframes bl{0%,100%{opacity:.3}50%{opacity:1;box-shadow:0 0 8px var(--g)}}
+h1{font-family:'Orbitron',monospace;font-weight:900;line-height:.88;margin-bottom:.7rem}
+.t1{font-size:clamp(3.5rem,8vw,7rem);letter-spacing:6px;background:linear-gradient(125deg,#fff 0%,var(--c) 45%,var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:block}
+.t2{font-size:clamp(.9rem,2vw,1.6rem);letter-spacing:16px;color:rgba(221,240,255,.18);display:block;margin-top:.4rem}
+.sub{font-family:'Share Tech Mono',monospace;font-size:.65rem;letter-spacing:3px;color:rgba(221,240,255,.28);margin:1rem 0 2rem}
+.stats{display:flex;justify-content:center;flex-wrap:wrap;border-top:1px solid rgba(0,238,255,.07);border-bottom:1px solid rgba(0,238,255,.07);margin-bottom:0}
+.st{padding:.9rem 1.8rem;border-right:1px solid rgba(0,238,255,.08)}
+.st:last-child{border:none}
+.stn{font-family:'Orbitron',monospace;font-size:1.5rem;font-weight:700;color:var(--c);display:block}
+.stl{font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:3px;color:rgba(221,240,255,.25);text-transform:uppercase}
+
+/* FILTERS */
+.filters{position:relative;z-index:1;display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;padding:1.2rem 2rem;background:rgba(0,238,255,.015);border-bottom:1px solid rgba(0,238,255,.06)}
+.fb{font-family:'Share Tech Mono',monospace;font-size:.63rem;letter-spacing:2px;padding:6px 16px;border-radius:2px;cursor:pointer;background:transparent;border:1px solid rgba(0,238,255,.15);color:rgba(221,240,255,.35);transition:all .18s}
+.fb:hover,.fb.on{border-color:var(--c);color:var(--c);background:rgba(0,238,255,.06);box-shadow:0 0 10px rgba(0,238,255,.12)}
+
+/* EMPTY STATE */
+.empty{position:relative;z-index:1;text-align:center;padding:5rem 2rem;display:none}
+.empty.show{display:block}
+.empty-icon{font-size:3rem;margin-bottom:1rem;opacity:.3}
+.empty h3{font-family:'Orbitron',monospace;font-size:.9rem;letter-spacing:3px;color:rgba(221,240,255,.3);margin-bottom:.5rem}
+.empty p{font-family:'Share Tech Mono',monospace;font-size:.65rem;letter-spacing:2px;color:rgba(221,240,255,.18)}
+
+/* GRID */
+.grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.6rem;padding:2rem 2.5rem 4rem;max-width:1380px;margin:0 auto}
+
+/* CARD */
+.cw{perspective:1100px;height:200px}
+.cw{animation:sup .45s ease both}
+@keyframes sup{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.ci{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .65s cubic-bezier(.22,1,.36,1)}
+.cw:hover .ci,.cw.fl .ci{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;border-radius:12px;overflow:hidden;cursor:pointer}
+/* NORMAL */
+.cw[data-type="normal"] .face{border:1px solid rgba(0,130,255,.45)}
+.cw[data-type="normal"] .front{background:linear-gradient(140deg,#020e30 0%,#041a50 55%,#020e30 100%);box-shadow:0 8px 36px rgba(0,90,255,.18)}
+.cw[data-type="normal"]:hover .face{border-color:rgba(0,200,255,.7);box-shadow:0 0 44px rgba(0,170,255,.32),0 16px 50px rgba(0,0,0,.55)}
+/* EXECUTIVE */
+.cw[data-type="executive"] .face{border:1px solid rgba(140,0,255,.45)}
+.cw[data-type="executive"] .front{background:linear-gradient(140deg,#080018 0%,#160030 55%,#080018 100%);box-shadow:0 8px 36px rgba(120,0,255,.2)}
+.cw[data-type="executive"]:hover .face{border-color:rgba(180,0,255,.75);box-shadow:0 0 44px rgba(160,0,255,.35),0 16px 50px rgba(0,0,0,.55)}
+
+.front{position:relative}
+.shim{position:absolute;inset:0;background:linear-gradient(110deg,transparent 25%,rgba(255,255,255,.035) 50%,transparent 75%);background-size:200% 100%;animation:shim 4s ease-in-out infinite}
+@keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.holo{position:absolute;right:14px;top:12px;width:32px;height:32px;border-radius:50%;background:conic-gradient(from 0deg,var(--c),var(--p),var(--pk),#ffc800,var(--c));opacity:.15;animation:spin 5s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.cb{position:relative;padding:1.15rem 1.4rem;height:100%;display:flex;flex-direction:column;justify-content:space-between}
+.r1{display:flex;justify-content:space-between;align-items:flex-start}
+.pill{font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:3px;padding:3px 10px;border-radius:1px;text-transform:uppercase}
+.pn{background:rgba(0,110,255,.12);color:#6699ff;border:1px solid rgba(0,110,255,.3)}
+.pe{background:rgba(150,0,255,.12);color:#bb77ff;border:1px solid rgba(150,0,255,.3)}
+.bal{font-family:'Orbitron',monospace;font-weight:700;font-size:1.4rem;line-height:1}
+.bn{color:var(--c);text-shadow:0 0 18px rgba(0,238,255,.65)}
+.be{color:#cc88ff;text-shadow:0 0 18px rgba(180,0,255,.65)}
+.r2{display:flex;align-items:center;gap:12px}
+.chip{width:38px;height:28px;border-radius:4px;background:linear-gradient(135deg,#a07828,#ffd060,#a07828);border:1px solid rgba(255,210,0,.25);position:relative;overflow:hidden;flex-shrink:0}
+.chip::before{content:'';position:absolute;inset:4px;border:1px solid rgba(255,210,0,.4);border-radius:2px}
+.chip::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,210,0,.25)}
+.cnum{font-family:'Share Tech Mono',monospace;font-size:.8rem;letter-spacing:2px;color:rgba(221,240,255,.68)}
+.r3{display:flex;justify-content:space-between;align-items:flex-end}
+.lbl{font-size:.42rem;letter-spacing:2px;color:rgba(221,240,255,.2);text-transform:uppercase;margin-bottom:2px}
+.cname{font-family:'Orbitron',monospace;font-size:.63rem;letter-spacing:1px;color:rgba(221,240,255,.75)}
+.cexp{font-family:'Share Tech Mono',monospace;font-size:.63rem;color:rgba(221,240,255,.5)}
+.wm{font-family:'Orbitron',monospace;font-size:.48rem;letter-spacing:2px;color:rgba(221,240,255,.09);text-align:right;line-height:1.4}
+
+/* BACK */
+.back{transform:rotateY(180deg);background:linear-gradient(135deg,#030818,#080220);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.8rem}
+.mag{position:absolute;top:0;left:0;right:0;height:40px;background:linear-gradient(180deg,rgba(0,0,0,.75),rgba(0,0,0,.4))}
+.cvvlbl{font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:5px;color:rgba(221,240,255,.25);text-transform:uppercase}
+.cvvval{font-family:'Orbitron',monospace;font-size:2.5rem;font-weight:700;letter-spacing:12px}
+.cvvn{color:var(--c);text-shadow:0 0 28px rgba(0,238,255,.9),0 0 55px rgba(0,238,255,.4)}
+.cvve{color:#cc88ff;text-shadow:0 0 28px rgba(180,0,255,.9),0 0 55px rgba(180,0,255,.4)}
+.cvvsec{font-family:'Share Tech Mono',monospace;font-size:.48rem;letter-spacing:2px;color:rgba(0,255,136,.45)}
+.buybtn{font-family:'Orbitron',monospace;font-size:.62rem;font-weight:700;letter-spacing:3px;padding:9px 26px;border-radius:3px;border:none;cursor:pointer;background:linear-gradient(90deg,var(--c),var(--p));color:#02040e;box-shadow:0 0 20px rgba(0,238,255,.35);transition:box-shadow .15s,transform .15s}
+.buybtn:hover{box-shadow:0 0 38px rgba(0,238,255,.65);transform:scale(1.08)}
+
+/* MODAL OVERLAY */
+.overlay{display:none;position:fixed;inset:0;z-index:400;background:rgba(2,4,14,.85);backdrop-filter:blur(12px);place-items:center}
+.overlay.on{display:grid;animation:fi .25s}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.modal{background:#060d28;border:1px solid rgba(0,238,255,.2);border-radius:14px;padding:2.5rem;width:100%;max-width:420px;box-shadow:0 0 60px rgba(0,238,255,.07)}
+.modal-title{font-family:'Orbitron',monospace;font-size:.8rem;letter-spacing:4px;color:var(--c);margin-bottom:1.8rem;text-align:center}
+.fg{margin-bottom:1rem}
+.fg label{display:block;font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;color:rgba(221,240,255,.32);text-transform:uppercase;margin-bottom:5px}
+.fg input,.fg select{width:100%;background:rgba(0,0,0,.45);border:1px solid rgba(0,238,255,.17);border-radius:4px;padding:10px 12px;color:#ddf0ff;font-family:'Share Tech Mono',monospace;font-size:.8rem;outline:none;transition:border-color .2s}
+.fg input:focus,.fg select:focus{border-color:var(--c);box-shadow:0 0 10px rgba(0,238,255,.12)}
+.fg select option{background:#060d28}
+.mbtns{display:flex;gap:.8rem;margin-top:1.5rem}
+.mbtn{flex:1;font-family:'Orbitron',monospace;font-size:.6rem;font-weight:700;letter-spacing:2px;padding:11px;border-radius:3px;cursor:pointer;transition:all .2s}
+.mbtn-confirm{background:linear-gradient(90deg,var(--c),var(--p));border:none;color:#02040e;box-shadow:0 0 18px rgba(0,238,255,.25)}
+.mbtn-confirm:hover{box-shadow:0 0 32px rgba(0,238,255,.5)}
+.mbtn-cancel{background:transparent;border:1px solid rgba(221,240,255,.18);color:rgba(221,240,255,.45)}
+.mbtn-cancel:hover{border-color:rgba(221,240,255,.4);color:rgba(221,240,255,.7)}
+
+/* ADMIN */
+#adm{display:none;position:fixed;inset:0;z-index:200;background:rgba(2,4,14,.97);backdrop-filter:blur(24px);overflow-y:auto}
+#adm.on{display:block;animation:fi .25s}
+.adh{position:sticky;top:0;z-index:10;background:rgba(2,4,14,.99);border-bottom:1px solid rgba(0,238,255,.1);padding:0 2rem;height:60px;display:flex;align-items:center;justify-content:space-between}
+.adt{font-family:'Orbitron',monospace;font-size:.78rem;letter-spacing:4px;color:var(--c)}
+.adcl{font-family:'Orbitron',monospace;font-size:.55rem;letter-spacing:2px;padding:7px 16px;border:1px solid rgba(255,0,85,.35);color:var(--pk);background:transparent;border-radius:2px;cursor:pointer;transition:all .2s}
+.adcl:hover{background:rgba(255,0,85,.08);box-shadow:0 0 14px rgba(255,0,85,.25)}
+.adb{max-width:1100px;margin:0 auto;padding:2rem}
+.adst{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.9rem;margin-bottom:2rem}
+.adsc{background:rgba(0,238,255,.04);border:1px solid rgba(0,238,255,.14);border-radius:6px;padding:.9rem;text-align:center}
+.adsn{font-family:'Orbitron',monospace;font-size:1.4rem;font-weight:700;color:var(--c)}
+.adsl{font-family:'Share Tech Mono',monospace;font-size:.53rem;letter-spacing:2px;color:rgba(221,240,255,.25);margin-top:3px;text-transform:uppercase}
+.ads{margin-bottom:2rem}
+.adst2{font-family:'Orbitron',monospace;font-size:.65rem;letter-spacing:3px;color:var(--p);margin-bottom:1rem;text-transform:uppercase;padding-bottom:.5rem;border-bottom:1px solid rgba(155,0,255,.15)}
+.af{background:rgba(0,238,255,.025);border:1px solid rgba(0,238,255,.12);border-radius:8px;padding:1.5rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:1rem}
+.addcbtn{grid-column:1/-1;font-family:'Orbitron',monospace;font-size:.6rem;letter-spacing:3px;padding:11px;border-radius:3px;border:1px solid var(--c);color:var(--c);background:rgba(0,238,255,.04);cursor:pointer;transition:all .2s}
+.addcbtn:hover{background:rgba(0,238,255,.1);box-shadow:0 0 16px rgba(0,238,255,.2)}
+.atbl{width:100%;border-collapse:collapse;font-size:.77rem}
+.atbl th{font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:2px;color:rgba(221,240,255,.22);text-transform:uppercase;text-align:left;padding:8px 12px;border-bottom:1px solid rgba(0,238,255,.06)}
+.atbl td{padding:8px 12px;border-bottom:1px solid rgba(0,238,255,.03);color:rgba(221,240,255,.6)}
+.atbl tr:hover td{background:rgba(0,238,255,.02)}
+.tbtn{font-family:'Orbitron',monospace;font-size:.5rem;letter-spacing:1px;padding:4px 11px;border-radius:2px;cursor:pointer;transition:all .18s;border:1px solid transparent}
+.te{background:rgba(0,238,255,.06);border-color:rgba(0,238,255,.18);color:var(--c)}
+.te:hover{background:rgba(0,238,255,.12)}
+.td{background:rgba(255,0,85,.06);border-color:rgba(255,0,85,.2);color:var(--pk);margin-left:5px}
+.td:hover{background:rgba(255,0,85,.12)}
+.tdr{background:rgba(0,255,136,.06);border-color:rgba(0,255,136,.2);color:var(--g);margin-left:5px}
+.tdr:hover{background:rgba(0,255,136,.12)}
+
+/* LOGIN */
+#lgin{display:none;position:fixed;inset:0;z-index:300;background:rgba(2,4,14,.98);backdrop-filter:blur(30px);place-items:center}
+#lgin.on{display:grid;animation:fi .25s}
+.lbox{background:#060d28;border:1px solid rgba(0,238,255,.18);border-radius:14px;padding:3rem 2.5rem;width:100%;max-width:340px;text-align:center;box-shadow:0 0 60px rgba(0,238,255,.06)}
+.llogo{font-family:'Orbitron',monospace;font-size:1.7rem;font-weight:900;letter-spacing:6px;background:linear-gradient(90deg,var(--c),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.3rem}
+.lsub{font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:4px;color:rgba(221,240,255,.2);margin-bottom:2rem}
+.lbox input{width:100%;background:rgba(0,0,0,.48);border:1px solid rgba(0,238,255,.15);border-radius:3px;padding:11px 12px;color:#ddf0ff;font-family:'Share Tech Mono',monospace;font-size:.8rem;outline:none;margin-bottom:.8rem;transition:border-color .2s;letter-spacing:1px}
+.lbox input:focus{border-color:var(--c)}
+.lbtn{width:100%;background:linear-gradient(90deg,var(--c),var(--p));border:none;color:#02040e;padding:12px;border-radius:3px;cursor:pointer;font-family:'Orbitron',monospace;font-size:.68rem;font-weight:700;letter-spacing:4px;box-shadow:0 0 24px rgba(0,238,255,.2);transition:box-shadow .2s}
+.lbtn:hover{box-shadow:0 0 40px rgba(0,238,255,.45)}
+.lerr{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--pk);margin-top:.7rem;display:none}
+
+footer{position:relative;z-index:1;text-align:center;padding:1.8rem;border-top:1px solid rgba(0,238,255,.05);font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:2px;color:rgba(221,240,255,.12)}
+
+@media(max-width:560px){
+  .grid{grid-template-columns:repeat(2,1fr);gap:.9rem;padding:1.2rem 1rem 3rem}
+  .cw{height:178px}
+  .t1{font-size:3rem;letter-spacing:3px}
+  nav{padding:0 1rem}.adh{padding:0 1rem}.adb{padding:1rem}
+  .hero{padding:3rem 1rem 1.5rem}
+  .cb{padding:1rem 1.1rem}
+  .mbtns{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<canvas id="cc"></canvas>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">DCC PAY<em>VCC</em></div>
+  <div class="navr">
+    <button class="nl" onclick="document.getElementById('cardGrid').scrollIntoView({behavior:'smooth'})">CARDS</button>
+    <button class="nl" onclick="openAdmin()">ADMIN</button>
+    <a class="nl" href="https://discord.gg/4zSt3Yu6vE" target="_blank">DISCORD</a>
+    <button class="nb" onclick="openAdmin()">PANEL ▸</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="tag"><div class="blink"></div>SYSTEM ONLINE · DCC NETWORK · 2025</div>
+  <h1><span class="t1">DCC PAY</span><span class="t2">VIRTUAL CARD CENTRE</span></h1>
+  <p class="sub">// SECURE &nbsp;·&nbsp; ANONYMOUS &nbsp;·&nbsp; INSTANT &nbsp;·&nbsp; ENCRYPTED</p>
+  <div class="stats">
+    <div class="st"><span class="stn" id="hs0">0</span><span class="stl">Cards</span></div>
+    <div class="st"><span class="stn" id="hs1">$0</span><span class="stl">Balance</span></div>
+    <div class="st"><span class="stn" id="hs2">0</span><span class="stl">Normal</span></div>
+    <div class="st"><span class="stn" id="hs3">0</span><span class="stl">Executive</span></div>
+  </div>
+</section>
+
+<!-- FILTERS -->
+<div class="filters">
+  <button class="fb on" onclick="doF('all',this)">ALL</button>
+  <button class="fb" onclick="doF('normal',this)">NORMAL</button>
+  <button class="fb" onclick="doF('executive',this)">EXECUTIVE</button>
+  <button class="fb" onclick="doS('asc')">BALANCE ↑</button>
+  <button class="fb" onclick="doS('desc')">BALANCE ↓</button>
+</div>
+
+<!-- EMPTY STATE -->
+<div class="empty" id="empty">
+  <div class="empty-icon">◈</div>
+  <h3>NO CARDS AVAILABLE</h3>
+  <p>Admin can add cards via the panel</p>
+</div>
+
+<!-- GRID -->
+<div class="grid" id="cardGrid"></div>
+
+<footer>© 2025 DCC PAY SYSTEMS &nbsp;·&nbsp; discord.gg/4zSt3Yu6vE</footer>
+
+<!-- EDIT MODAL -->
+<div class="overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title">⬡ EDIT CARD</div>
+    <input type="hidden" id="editId">
+    <div class="fg"><label>Cardholder Name</label><input type="text" id="eName" placeholder="JOHN DOE"></div>
+    <div class="fg"><label>Card Number</label><input type="text" id="eNum" placeholder="**** **** **** ****" maxlength="19"></div>
+    <div class="fg"><label>Expiry (MM/YY)</label><input type="text" id="eExp" placeholder="MM/YY" maxlength="5"></div>
+    <div class="fg"><label>Balance ($)</label><input type="number" id="eBal" placeholder="100" min="10" max="500"></div>
+    <div class="fg"><label>Type</label>
+      <select id="eType">
+        <option value="normal">Normal</option>
+        <option value="executive">Executive</option>
+      </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:.3rem">
+      <input type="checkbox" id="eRegen" style="width:auto;margin:0;accent-color:var(--c)">
+      <label for="eRegen" style="font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:2px;color:rgba(221,240,255,.4);cursor:pointer">REGENERATE CVV</label>
+    </div>
+    <div class="mbtns">
+      <button class="mbtn mbtn-cancel" onclick="closeEdit()">CANCEL</button>
+      <button class="mbtn mbtn-confirm" onclick="saveEdit()">SAVE CHANGES</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="overlay" id="delModal">
+  <div class="modal" style="max-width:360px;text-align:center">
+    <div class="modal-title" style="color:var(--pk)">⚠ CONFIRM DELETE</div>
+    <p style="font-family:'Share Tech Mono',monospace;font-size:.65rem;letter-spacing:2px;color:rgba(221,240,255,.4);margin-bottom:1.5rem">This card will be permanently removed.</p>
+    <input type="hidden" id="delId">
+    <div class="mbtns">
+      <button class="mbtn mbtn-cancel" onclick="closeDel()">CANCEL</button>
+      <button class="mbtn" style="flex:1;font-family:'Orbitron',monospace;font-size:.6rem;font-weight:700;letter-spacing:2px;padding:11px;border-radius:3px;cursor:pointer;background:rgba(255,0,85,.12);border:1px solid rgba(255,0,85,.35);color:var(--pk);transition:all .2s" onmouseover="this.style.background='rgba(255,0,85,.22)'" onmouseout="this.style.background='rgba(255,0,85,.12)'" onclick="confirmDel()">DELETE CARD</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="lgin">
+  <div class="lbox">
+    <div class="llogo">DCC PAY</div>
+    <div class="lsub">ADMIN ACCESS</div>
+    <input type="text" id="lu" placeholder="USERNAME" autocomplete="off">
+    <input type="password" id="lp" placeholder="PASSWORD">
+    <button class="lbtn" onclick="doLogin()">AUTHENTICATE ▸</button>
+    <div class="lerr" id="lerr">⚠ ACCESS DENIED</div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:.52rem;color:rgba(221,240,255,.15);margin-top:1.2rem;letter-spacing:1px">admin / dccpay2025</div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adm">
+  <div class="adh">
+    <div class="adt">⬡ DCC PAY — ADMIN PANEL</div>
+    <button class="adcl" onclick="closeAdm()">✕ CLOSE</button>
+  </div>
+  <div class="adb">
+    <div class="adst">
+      <div class="adsc"><div class="adsn" id="a0">0</div><div class="adsl">Total Cards</div></div>
+      <div class="adsc"><div class="adsn" id="a1">$0</div><div class="adsl">Total Balance</div></div>
+      <div class="adsc"><div class="adsn" id="a2">0</div><div class="adsl">Normal</div></div>
+      <div class="adsc"><div class="adsn" id="a3">0</div><div class="adsl">Executive</div></div>
+    </div>
+    <div class="ads">
+      <div class="adst2">Add New Card</div>
+      <div class="af">
+        <div class="fg"><label>Cardholder Name</label><input id="fn" placeholder="JOHN DOE" type="text"></div>
+        <div class="fg"><label>Card Number</label><input id="fnu" placeholder="**** **** **** ****" maxlength="19"></div>
+        <div class="fg"><label>Expiry (MM/YY)</label><input id="fe" placeholder="MM/YY" maxlength="5"></div>
+        <div class="fg"><label>Balance ($)</label><input id="fb2" type="number" placeholder="100" min="10" max="500"></div>
+        <div class="fg"><label>Type</label><select id="ft"><option value="normal">Normal</option><option value="executive">Executive</option></select></div>
+        <button class="addcbtn" onclick="addCard()">⬡ ADD CARD TO GRID</button>
+      </div>
+    </div>
+    <div class="ads">
+      <div class="adst2">Card Inventory</div>
+      <div style="overflow-x:auto">
+      <table class="atbl">
+        <thead><tr><th>Name</th><th>Number</th><th>Balance</th><th>Type</th><th>CVV</th><th>Exp</th><th>Actions</th></tr></thead>
+        <tbody id="atb"></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DISCORD='https://discord.gg/4zSt3Yu6vE';
+let cards=[];
+let nid=1,auth=false,filt='all';
+
+function cvv(){return String(Math.floor(100+Math.random()*900))}
+function maskN(n){const p=n.trim().split(' ');return p.length>=4?p[0]+' **** **** '+p[p.length-1]:n}
+
+function getList(){
+  let l=[...cards];
+  if(filt==='normal')l=l.filter(c=>c.type==='normal');
+  if(filt==='executive')l=l.filter(c=>c.type==='executive');
+  return l;
+}
+
+function render(list){
+  const g=document.getElementById('cardGrid');
+  const empty=document.getElementById('empty');
+  if(!list||list.length===0){g.innerHTML='';empty.classList.add('show');return}
+  empty.classList.remove('show');
+  g.innerHTML='';
+  list.forEach((c,i)=>{
+    const e=c.type==='executive';
+    const w=document.createElement('div');
+    w.className='cw';w.dataset.type=c.type;
+    w.style.animationDelay=`${i*0.05}s`;
+    if('ontouchstart' in window) w.addEventListener('click',()=>w.classList.toggle('fl'));
+    w.innerHTML=`
+<div class="ci">
+  <div class="face front">
+    <div class="shim"></div>
+    <div class="holo"></div>
+    <div class="cb">
+      <div class="r1">
+        <span class="pill ${e?'pe':'pn'}">${e?'◈ EXECUTIVE':'◆ NORMAL'}</span>
+        <span class="bal ${e?'be':'bn'}">$${c.bal}</span>
+      </div>
+      <div class="r2">
+        <div class="chip"></div>
+        <div class="cnum">${maskN(c.num)}</div>
+      </div>
+      <div class="r3">
+        <div><div class="lbl">cardholder</div><div class="cname">${c.name}</div></div>
+        <div style="text-align:right"><div class="lbl">expires</div><div class="cexp">${c.exp}</div></div>
+        <div class="wm">DCC<br>PAY</div>
+      </div>
+    </div>
+  </div>
+  <div class="face back">
+    <div class="mag"></div>
+    <div class="cvvlbl">SECURITY CODE</div>
+    <div class="cvvval ${e?'cvve':'cvvn'}">${c.cvv}</div>
+    <div class="cvvsec">⬡ DCC PAY VERIFIED · ENCRYPTED</div>
+    <button class="buybtn" onclick="buyNow(event)">BUY NOW ▸</button>
+  </div>
+</div>`;
+    g.appendChild(w);
+  });
+}
+
+function buyNow(e){
+  e.stopPropagation();
+  launch();
+  setTimeout(()=>window.open(DISCORD,'_blank'),350);
+}
+
+function updStats(){
+  const n=cards.filter(c=>c.type==='normal').length;
+  const ex=cards.filter(c=>c.type==='executive').length;
+  const tot=cards.reduce((s,c)=>s+c.bal,0);
+  document.getElementById('hs0').textContent=cards.length;
+  document.getElementById('hs1').textContent='$'+tot.toLocaleString();
+  document.getElementById('hs2').textContent=n;
+  document.getElementById('hs3').textContent=ex;
+  document.getElementById('a0').textContent=cards.length;
+  document.getElementById('a1').textContent='$'+tot.toLocaleString();
+  document.getElementById('a2').textContent=n;
+  document.getElementById('a3').textContent=ex;
+}
+
+function renderAdm(){
+  document.getElementById('atb').innerHTML=cards.length===0
+    ?'<tr><td colspan="7" style="text-align:center;padding:2rem;font-family:\'Share Tech Mono\',monospace;font-size:.65rem;color:rgba(221,240,255,.25);letter-spacing:2px">NO CARDS — ADD ONE ABOVE</td></tr>'
+    :cards.map(c=>`<tr>
+      <td style="font-weight:600">${c.name}</td>
+      <td style="font-family:'Share Tech Mono',monospace;font-size:.68rem;color:rgba(221,240,255,.35)">${c.num}</td>
+      <td style="color:${c.type==='executive'?'#cc88ff':'var(--c)'}">$${c.bal}</td>
+      <td><span class="pill ${c.type==='executive'?'pe':'pn'}" style="font-size:.48rem">${c.type.toUpperCase()}</span></td>
+      <td style="font-family:'Orbitron',monospace;letter-spacing:4px;font-size:.85rem;color:${c.type==='executive'?'#cc88ff':'var(--c)'}">${c.cvv}</td>
+      <td style="font-family:'Share Tech Mono',monospace">${c.exp}</td>
+      <td style="white-space:nowrap">
+        <button class="tbtn te" onclick="openEdit(${c.id})">EDIT</button>
+        <button class="tbtn tdr" onclick="regenCvv(${c.id})">CVV</button>
+        <button class="tbtn td" onclick="openDel(${c.id})">DEL</button>
+      </td>
+    </tr>`).join('');
+}
+
+/* ADMIN AUTH */
+function openAdmin(){
+  if(auth){renderAdm();updStats();document.getElementById('adm').classList.add('on')}
+  else document.getElementById('lgin').classList.add('on');
+}
+function closeAdm(){document.getElementById('adm').classList.remove('on')}
+
+function doLogin(){
+  const u=document.getElementById('lu').value.trim();
+  const p=document.getElementById('lp').value;
+  if(u==='admin'&&p==='dccpay2025'){
+    auth=true;
+    document.getElementById('lgin').classList.remove('on');
+    renderAdm();updStats();
+    document.getElementById('adm').classList.add('on');
+  } else {
+    document.getElementById('lerr').style.display='block';
+    setTimeout(()=>document.getElementById('lerr').style.display='none',2500);
+  }
+}
+
+/* ADD CARD */
+function addCard(){
+  const name=document.getElementById('fn').value.trim().toUpperCase();
+  const num=document.getElementById('fnu').value.trim();
+  const exp=document.getElementById('fe').value.trim();
+  const bal=parseInt(document.getElementById('fb2').value)||100;
+  const type=document.getElementById('ft').value;
+  if(!name){alert('Enter cardholder name');return}
+  if(!num){alert('Enter card number');return}
+  cards.push({id:nid++,name,num,exp,bal,type,cvv:cvv()});
+  ['fn','fnu','fe','fb2'].forEach(id=>document.getElementById(id).value='');
+  render(getList());renderAdm();updStats();
+}
+
+/* EDIT MODAL */
+function openEdit(id){
+  const c=cards.find(x=>x.id===id);if(!c)return;
+  document.getElementById('editId').value=id;
+  document.getElementById('eName').value=c.name;
+  document.getElementById('eNum').value=c.num;
+  document.getElementById('eExp').value=c.exp;
+  document.getElementById('eBal').value=c.bal;
+  document.getElementById('eType').value=c.type;
+  document.getElementById('eRegen').checked=false;
+  document.getElementById('editModal').classList.add('on');
+}
+function closeEdit(){document.getElementById('editModal').classList.remove('on')}
+function saveEdit(){
+  const id=parseInt(document.getElementById('editId').value);
+  const c=cards.find(x=>x.id===id);if(!c)return;
+  c.name=document.getElementById('eName').value.trim().toUpperCase()||c.name;
+  c.num=document.getElementById('eNum').value.trim()||c.num;
+  c.exp=document.getElementById('eExp').value.trim()||c.exp;
+  c.bal=parseInt(document.getElementById('eBal').value)||c.bal;
+  c.type=document.getElementById('eType').value;
+  if(document.getElementById('eRegen').checked) c.cvv=cvv();
+  closeEdit();
+  render(getList());renderAdm();updStats();
+}
+
+/* REGEN CVV */
+function regenCvv(id){
+  const c=cards.find(x=>x.id===id);if(!c)return;
+  c.cvv=cvv();
+  render(getList());renderAdm();
+}
+
+/* DELETE MODAL */
+function openDel(id){
+  document.getElementById('delId').value=id;
+  document.getElementById('delModal').classList.add('on');
+}
+function closeDel(){document.getElementById('delModal').classList.remove('on')}
+function confirmDel(){
+  const id=parseInt(document.getElementById('delId').value);
+  cards=cards.filter(c=>c.id!==id);
+  closeDel();
+  render(getList());renderAdm();updStats();
+}
+
+function doF(t,btn){
+  filt=t;
+  document.querySelectorAll('.fb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');render(getList());
+}
+function doS(d){cards.sort((a,b)=>d==='asc'?a.bal-b.bal:b.bal-a.bal);render(getList())}
+
+/* Close modal on overlay click */
+document.getElementById('editModal').addEventListener('click',function(e){if(e.target===this)closeEdit()});
+document.getElementById('delModal').addEventListener('click',function(e){if(e.target===this)closeDel()});
+
+/* CONFETTI - lightweight */
+const cv2=document.getElementById('cc');
+const cx=cv2.getContext('2d');
+let pieces=[];let ca=false;
+function rsz(){cv2.width=window.innerWidth;cv2.height=window.innerHeight}
+rsz();window.addEventListener('resize',rsz);
+
+function launch(){
+  const cols=['#00eeff','#9b00ff','#ff0055','#ffc800','#00ff88','#fff'];
+  for(let i=0;i<120;i++){
+    pieces.push({
+      x:Math.random()*cv2.width,y:-10,
+      w:Math.random()*11+3,h:Math.random()*7+3,
+      col:cols[~~(Math.random()*cols.length)],
+      rot:Math.random()*360,
+      vx:(Math.random()-.5)*5,vy:Math.random()*5+1.5,
+      vr:(Math.random()-.5)*9,a:1
+    });
+  }
+  if(!ca){ca=true;animC()}
+}
+function animC(){
+  cx.clearRect(0,0,cv2.width,cv2.height);
+  pieces.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.rot+=p.vr;
+    if(p.y>cv2.height*.6)p.a=Math.max(0,p.a-.03);
+    cx.save();cx.globalAlpha=p.a;
+    cx.translate(p.x+p.w/2,p.y+p.h/2);cx.rotate(p.rot*Math.PI/180);
+    cx.fillStyle=p.col;cx.fillRect(-p.w/2,-p.h/2,p.w,p.h);cx.restore();
+  });
+  pieces=pieces.filter(p=>p.a>0);
+  if(pieces.length)requestAnimationFrame(animC);else ca=false;
+}
+
+/* Input formatters */
+document.getElementById('fnu').addEventListener('input',function(){
+  let v=this.value.replace(/\D/g,'').slice(0,16);
+  this.value=v.replace(/(.{4})/g,'$1 ').trim();
+});
+document.getElementById('fe').addEventListener('input',function(){
+  let v=this.value.replace(/\D/g,'');
+  if(v.length>=2)v=v.slice(0,2)+'/'+v.slice(2,4);
+  this.value=v;
+});
+document.getElementById('eNum').addEventListener('input',function(){
+  let v=this.value.replace(/\D/g,'').slice(0,16);
+  this.value=v.replace(/(.{4})/g,'$1 ').trim();
+});
+document.getElementById('eExp').addEventListener('input',function(){
+  let v=this.value.replace(/\D/g,'');
+  if(v.length>=2)v=v.slice(0,2)+'/'+v.slice(2,4);
+  this.value=v;
+});
+document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+
+/* INIT */
+render([]);
+updStats();
+</script>
+</body>
+</html>
